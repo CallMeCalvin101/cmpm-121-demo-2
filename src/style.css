@@ -27,7 +27,7 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  place-items: normal;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -78,4 +78,10 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+#canvas {
+  border-style: solid;
+  border-color: #1a1a1a;
+  border-radius: 16px;
 }
