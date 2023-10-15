@@ -45,10 +45,10 @@ canvas.addEventListener("mouseup", () => {
 
 app.append(document.createElement("br"));
 
-const clearButton = document.createElement("button");
-clearButton.innerHTML = "clear";
-document.body.append(clearButton);
+const clearButton = document.getElementById("clear");
+clearButton!.innerHTML = "clear";
+app.append(clearButton!);
 
-clearButton.addEventListener("click", () => {
+clearButton!.addEventListener("click", () => {
   ctx?.clearRect(0, 0, canvas.width, canvas.height);
 });
