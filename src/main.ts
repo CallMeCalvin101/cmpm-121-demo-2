@@ -27,6 +27,7 @@ interface Coordinate {
 }
 
 const allLines: Coordinate[][] = [];
+const redoLines: Coordinate[][] = [];
 let currentLine: Coordinate[] = [];
 
 const ctx = canvas.getContext("2d");
@@ -57,6 +58,8 @@ canvas.addEventListener("mousedown", (e) => {
   allLines.push(currentLine);
   currentLine.push({ x: cursor.x, y: cursor.y });
 
+  redoLines.splice(0, redoLines.length);
+
   canvas.dispatchEvent(drawChangedEvent);
 });
 
@@ -84,4 +87,30 @@ app.append(clearButton!);
 clearButton!.addEventListener("click", () => {
   allLines.splice(0, allLines.length);
   canvas.dispatchEvent(drawChangedEvent);
+});
+
+const undoButton = document.getElementById("undo");
+undoButton!.innerHTML = "undo";
+app.append(undoButton!);
+
+undoButton!.addEventListener("click", () => {
+  const undoneLine = allLines.pop();
+
+  if (undoneLine != undefined) {
+    redoLines.push(undoneLine);
+    canvas.dispatchEvent(drawChangedEvent);
+  }
+});
+
+const redoButton = document.getElementById("redo");
+redoButton!.innerHTML = "redo";
+app.append(redoButton!);
+
+redoButton!.addEventListener("click", () => {
+  const redoneLine = redoLines.pop();
+
+  if (redoneLine != undefined) {
+    allLines.push(redoneLine);
+    canvas.dispatchEvent(drawChangedEvent);
+  }
 });
