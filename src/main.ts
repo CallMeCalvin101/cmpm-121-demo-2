@@ -11,6 +11,10 @@ const thinMarkerWidth = 1;
 const thickMarkerWidth = 5;
 let currentMarkerWidth = thinMarkerWidth;
 
+const markerOffset = 4;
+const sizeFactor = 2;
+const yFactor = 2;
+
 document.title = gameName;
 
 const header: HTMLElement | null = document.createElement("h1");
@@ -26,6 +30,7 @@ canvas.height = canvasSize;
 app.append(canvas);
 
 const drawChangedEvent: Event = new Event("drawing-changed");
+const cursorChangedEvent: Event = new Event("cursor-changed");
 
 interface Coordinate {
   x: number;
@@ -63,47 +68,103 @@ class Marker implements DrawableObject {
   }
 }
 
-const allLines: DrawableObject[] = [];
-const redoLines: DrawableObject[] = [];
+class Cursor implements DrawableObject {
+  isActive: boolean;
+  isPressed: boolean;
+  location: Coordinate;
+
+  constructor(point: Coordinate) {
+    this.isActive = false;
+    this.isPressed = false;
+    this.location = point;
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    let calculatedOffset = 0;
+    if (currentMarkerWidth == thickMarkerWidth) {
+      context.font = "32px monospace";
+      calculatedOffset = markerOffset * sizeFactor;
+    } else {
+      context.font = "16px monospace";
+      calculatedOffset = markerOffset;
+    }
+    context.fillText(
+      "*",
+      this.location.x - calculatedOffset,
+      this.location.y + yFactor * calculatedOffset
+    );
+  }
+
+  setPosition(point: Coordinate) {
+    this.location = point;
+  }
+
+  getPosition(): Coordinate {
+    return this.location;
+  }
+}
+
+const allItems: DrawableObject[] = [];
+const redoItems: DrawableObject[] = [];
 let currentLine: Marker;
 
 const ctx = canvas.getContext("2d");
 
-const cursor = { active: false, x: 0, y: 0 };
+const cursor = new Cursor({ x: 0, y: 0 });
 
-canvas.addEventListener("drawing-changed", () => {
+function drawCanvas() {
   ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
-  for (const object of allLines) {
+  for (const object of allItems) {
     object.display(ctx!);
   }
+
+  if (cursor.isActive) {
+    cursor.display(ctx!);
+  }
+}
+
+canvas.addEventListener("drawing-changed", () => {
+  drawCanvas();
+});
+
+canvas.addEventListener("cursor-changed", () => {
+  drawCanvas();
+});
+
+canvas.addEventListener("mouseenter", (e) => {
+  cursor.isActive = true;
+  cursor.setPosition({ x: e.offsetX, y: e.offsetY });
+  canvas.dispatchEvent(cursorChangedEvent);
+});
+
+canvas.addEventListener("mouseout", () => {
+  cursor.isActive = false;
+  console.log("disabled");
+  canvas.dispatchEvent(cursorChangedEvent);
 });
 
 canvas.addEventListener("mousedown", (e) => {
-  cursor.active = true;
-  cursor.x = e.offsetX;
-  cursor.y = e.offsetY;
+  cursor.isPressed = true;
+  cursor.setPosition({ x: e.offsetX, y: e.offsetY });
 
-  currentLine = new Marker({ x: cursor.x, y: cursor.y }, currentMarkerWidth);
-  allLines.push(currentLine);
+  currentLine = new Marker(cursor.getPosition(), currentMarkerWidth);
+  allItems.push(currentLine);
 
-  redoLines.splice(firstElement, redoLines.length);
+  redoItems.splice(firstElement, redoItems.length);
 
   canvas.dispatchEvent(drawChangedEvent);
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (cursor.active) {
-    cursor.x = e.offsetX;
-    cursor.y = e.offsetY;
-
-    currentLine.addPoint({ x: cursor.x, y: cursor.y });
-
-    canvas.dispatchEvent(drawChangedEvent);
+  cursor.setPosition({ x: e.offsetX, y: e.offsetY });
+  canvas.dispatchEvent(cursorChangedEvent);
+  if (cursor.isPressed) {
+    currentLine.addPoint(cursor.getPosition());
   }
 });
 
 canvas.addEventListener("mouseup", () => {
-  cursor.active = false;
+  cursor.isPressed = false;
 });
 
 app.append(document.createElement("br"));
@@ -113,8 +174,8 @@ clearButton!.innerHTML = "clear";
 app.append(clearButton!);
 
 clearButton!.addEventListener("click", () => {
-  allLines.splice(firstElement, allLines.length);
-  redoLines.splice(firstElement, redoLines.length);
+  allItems.splice(firstElement, allItems.length);
+  redoItems.splice(firstElement, redoItems.length);
   canvas.dispatchEvent(drawChangedEvent);
 });
 
@@ -123,10 +184,10 @@ undoButton!.innerHTML = "undo";
 app.append(undoButton!);
 
 undoButton!.addEventListener("click", () => {
-  const undoneLine = allLines.pop();
+  const undoneLine = allItems.pop();
 
   if (undoneLine != undefined) {
-    redoLines.push(undoneLine);
+    redoItems.push(undoneLine);
     canvas.dispatchEvent(drawChangedEvent);
   }
 });
@@ -136,10 +197,10 @@ redoButton!.innerHTML = "redo";
 app.append(redoButton!);
 
 redoButton!.addEventListener("click", () => {
-  const redoneLine = redoLines.pop();
+  const redoneLine = redoItems.pop();
 
   if (redoneLine != undefined) {
-    allLines.push(redoneLine);
+    allItems.push(redoneLine);
     canvas.dispatchEvent(drawChangedEvent);
   }
 });
