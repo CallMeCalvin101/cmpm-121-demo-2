@@ -4,6 +4,8 @@ const app: HTMLDivElement = document.querySelector("#app")!;
 
 const gameName = "D's Rawing App";
 const canvasSize = 256;
+const canvasOrigin = 0;
+const firstElement = 0;
 
 document.title = gameName;
 
@@ -26,26 +28,46 @@ interface Coordinate {
   y: number;
 }
 
-const allLines: Coordinate[][] = [];
-const redoLines: Coordinate[][] = [];
-let currentLine: Coordinate[] = [];
+interface DrawableObject {
+  display(ctx: CanvasRenderingContext2D): void;
+}
+
+class Marker implements DrawableObject {
+  line: Coordinate[] = [];
+
+  constructor(point: Coordinate) {
+    this.addPoint(point);
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    if (this.line.length) {
+      context.beginPath();
+      const [firstPair, ...otherPairs] = this.line;
+      context.moveTo(firstPair.x, firstPair.y);
+      for (const pair of otherPairs) {
+        context.lineTo(pair.x, pair.y);
+      }
+      context.stroke();
+    }
+  }
+
+  addPoint(point: Coordinate) {
+    this.line.push(point);
+  }
+}
+
+const allLines: DrawableObject[] = [];
+const redoLines: DrawableObject[] = [];
+let currentLine: Marker;
 
 const ctx = canvas.getContext("2d");
 
 const cursor = { active: false, x: 0, y: 0 };
 
 canvas.addEventListener("drawing-changed", () => {
-  ctx?.clearRect(0, 0, canvas.width, canvas.height);
-  for (const line of allLines) {
-    if (line.length > 1) {
-      ctx?.beginPath();
-      const coord: Coordinate = line[0];
-      ctx?.moveTo(coord.x, coord.y);
-      for (const pair of line) {
-        ctx?.lineTo(pair.x, pair.y);
-      }
-      ctx?.stroke();
-    }
+  ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
+  for (const object of allLines) {
+    object.display(ctx!);
   }
 });
 
@@ -54,11 +76,10 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  currentLine = [];
+  currentLine = new Marker({ x: cursor.x, y: cursor.y });
   allLines.push(currentLine);
-  currentLine.push({ x: cursor.x, y: cursor.y });
 
-  redoLines.splice(0, redoLines.length);
+  redoLines.splice(firstElement, redoLines.length);
 
   canvas.dispatchEvent(drawChangedEvent);
 });
@@ -68,7 +89,7 @@ canvas.addEventListener("mousemove", (e) => {
     cursor.x = e.offsetX;
     cursor.y = e.offsetY;
 
-    currentLine.push({ x: cursor.x, y: cursor.y });
+    currentLine.addPoint({ x: cursor.x, y: cursor.y });
 
     canvas.dispatchEvent(drawChangedEvent);
   }
@@ -85,7 +106,7 @@ clearButton!.innerHTML = "clear";
 app.append(clearButton!);
 
 clearButton!.addEventListener("click", () => {
-  allLines.splice(0, allLines.length);
+  allLines.splice(firstElement, allLines.length);
   canvas.dispatchEvent(drawChangedEvent);
 });
 
