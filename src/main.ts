@@ -7,6 +7,10 @@ const canvasSize = 256;
 const canvasOrigin = 0;
 const firstElement = 0;
 
+const thinMarkerWidth = 1;
+const thickMarkerWidth = 5;
+let currentMarkerWidth = thinMarkerWidth;
+
 document.title = gameName;
 
 const header: HTMLElement | null = document.createElement("h1");
@@ -34,13 +38,16 @@ interface DrawableObject {
 
 class Marker implements DrawableObject {
   line: Coordinate[] = [];
+  width: number;
 
-  constructor(point: Coordinate) {
+  constructor(point: Coordinate, width: number) {
     this.addPoint(point);
+    this.width = width;
   }
 
   display(context: CanvasRenderingContext2D) {
     if (this.line.length) {
+      context.lineWidth = this.width;
       context.beginPath();
       const [firstPair, ...otherPairs] = this.line;
       context.moveTo(firstPair.x, firstPair.y);
@@ -76,7 +83,7 @@ canvas.addEventListener("mousedown", (e) => {
   cursor.x = e.offsetX;
   cursor.y = e.offsetY;
 
-  currentLine = new Marker({ x: cursor.x, y: cursor.y });
+  currentLine = new Marker({ x: cursor.x, y: cursor.y }, currentMarkerWidth);
   allLines.push(currentLine);
 
   redoLines.splice(firstElement, redoLines.length);
@@ -107,6 +114,7 @@ app.append(clearButton!);
 
 clearButton!.addEventListener("click", () => {
   allLines.splice(firstElement, allLines.length);
+  redoLines.splice(firstElement, redoLines.length);
   canvas.dispatchEvent(drawChangedEvent);
 });
 
@@ -134,4 +142,20 @@ redoButton!.addEventListener("click", () => {
     allLines.push(redoneLine);
     canvas.dispatchEvent(drawChangedEvent);
   }
+});
+
+const thinButton = document.getElementById("thin");
+thinButton!.innerHTML = "thin";
+app.append(thinButton!);
+
+thinButton!.addEventListener("click", () => {
+  currentMarkerWidth = thinMarkerWidth;
+});
+
+const thickButton = document.getElementById("thick");
+thickButton!.innerHTML = "thick";
+app.append(thickButton!);
+
+thickButton!.addEventListener("click", () => {
+  currentMarkerWidth = thickMarkerWidth;
 });
