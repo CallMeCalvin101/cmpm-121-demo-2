@@ -9,11 +9,20 @@ const firstElement = 0;
 
 const thinMarkerWidth = 1;
 const thickMarkerWidth = 5;
-let currentMarkerWidth = thinMarkerWidth;
 
+const markerIcon = "*";
 const markerOffset = 4;
-const sizeFactor = 2;
+const thickFactor = 2;
+const cursorStickerFactor = 2;
+const stickerOffsetFactor = 6;
 const yFactor = 2;
+
+const sticker1 = "😎";
+const sticker2 = "☠️";
+const sticker3 = "🔫";
+
+const markerType = "Marker";
+const stickerType = "Sticker";
 
 document.title = gameName;
 
@@ -39,6 +48,7 @@ interface Coordinate {
 
 interface DrawableObject {
   display(ctx: CanvasRenderingContext2D): void;
+  drag(point: Coordinate): void;
 }
 
 class Marker implements DrawableObject {
@@ -46,7 +56,7 @@ class Marker implements DrawableObject {
   width: number;
 
   constructor(point: Coordinate, width: number) {
-    this.addPoint(point);
+    this.line.push(point);
     this.width = width;
   }
 
@@ -63,7 +73,7 @@ class Marker implements DrawableObject {
     }
   }
 
-  addPoint(point: Coordinate) {
+  drag(point: Coordinate) {
     this.line.push(point);
   }
 }
@@ -81,36 +91,78 @@ class Cursor implements DrawableObject {
 
   display(context: CanvasRenderingContext2D) {
     let calculatedOffset = 0;
-    if (currentMarkerWidth == thickMarkerWidth) {
+    let xFactor = 1;
+    if (
+      currentDrawableType == markerType &&
+      currentMarkerWidth == thickMarkerWidth
+    ) {
       context.font = "32px monospace";
-      calculatedOffset = markerOffset * sizeFactor;
+      calculatedOffset = markerOffset * thickFactor;
+    } else if (currentDrawableType == stickerType) {
+      context.font = "12px monospace";
+      calculatedOffset = markerOffset / cursorStickerFactor;
+      xFactor = stickerOffsetFactor / cursorStickerFactor;
     } else {
       context.font = "16px monospace";
       calculatedOffset = markerOffset;
     }
     context.fillText(
-      "*",
-      this.location.x - calculatedOffset,
+      this.getImage(),
+      this.location.x - xFactor * calculatedOffset,
       this.location.y + yFactor * calculatedOffset
     );
   }
 
-  setPosition(point: Coordinate) {
+  drag(point: Coordinate) {
     this.location = point;
   }
 
   getPosition(): Coordinate {
     return this.location;
   }
+
+  getImage() {
+    if (currentDrawableType == stickerType) {
+      return currentStickerType;
+    } else {
+      return markerIcon;
+    }
+  }
+}
+
+class Sticker implements DrawableObject {
+  location: Coordinate;
+  type: string;
+
+  constructor(point: Coordinate, type: string) {
+    this.location = point;
+    this.type = type;
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    context.font = "32px monospace";
+    context.fillText(
+      this.type,
+      this.location.x - stickerOffsetFactor * markerOffset,
+      this.location.y + yFactor * markerOffset
+    );
+  }
+
+  drag(point: Coordinate) {
+    this.location = point;
+  }
 }
 
 const allItems: DrawableObject[] = [];
 const redoItems: DrawableObject[] = [];
-let currentLine: Marker;
+let currentLine: DrawableObject;
 
 const ctx = canvas.getContext("2d");
-
 const cursor = new Cursor({ x: 0, y: 0 });
+
+let currentMarkerWidth = thinMarkerWidth;
+let currentStickerType = sticker1;
+let currentDrawableType = markerType;
 
 function drawCanvas() {
   ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
@@ -120,6 +172,14 @@ function drawCanvas() {
 
   if (cursor.isActive && !cursor.isPressed) {
     cursor.display(ctx!);
+  }
+}
+
+function createDrawableObject(): DrawableObject {
+  if (currentDrawableType == stickerType) {
+    return new Sticker(cursor.getPosition(), currentStickerType);
+  } else {
+    return new Marker(cursor.getPosition(), currentMarkerWidth);
   }
 }
 
@@ -133,21 +193,21 @@ canvas.addEventListener("cursor-changed", () => {
 
 canvas.addEventListener("mouseenter", (e) => {
   cursor.isActive = true;
-  cursor.setPosition({ x: e.offsetX, y: e.offsetY });
+  cursor.drag({ x: e.offsetX, y: e.offsetY });
   canvas.dispatchEvent(cursorChangedEvent);
 });
 
 canvas.addEventListener("mouseout", () => {
   cursor.isActive = false;
-  console.log("disabled");
+  cursor.isPressed = false;
   canvas.dispatchEvent(cursorChangedEvent);
 });
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.isPressed = true;
-  cursor.setPosition({ x: e.offsetX, y: e.offsetY });
+  cursor.drag({ x: e.offsetX, y: e.offsetY });
 
-  currentLine = new Marker(cursor.getPosition(), currentMarkerWidth);
+  currentLine = createDrawableObject();
   allItems.push(currentLine);
 
   redoItems.splice(firstElement, redoItems.length);
@@ -156,10 +216,10 @@ canvas.addEventListener("mousedown", (e) => {
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  cursor.setPosition({ x: e.offsetX, y: e.offsetY });
+  cursor.drag({ x: e.offsetX, y: e.offsetY });
   canvas.dispatchEvent(cursorChangedEvent);
   if (cursor.isPressed) {
-    currentLine.addPoint(cursor.getPosition());
+    currentLine.drag(cursor.getPosition());
   }
 });
 
@@ -210,6 +270,7 @@ thinButton!.innerHTML = "thin";
 app.append(thinButton!);
 
 thinButton!.addEventListener("click", () => {
+  currentDrawableType = markerType;
   currentMarkerWidth = thinMarkerWidth;
 });
 
@@ -218,5 +279,32 @@ thickButton!.innerHTML = "thick";
 app.append(thickButton!);
 
 thickButton!.addEventListener("click", () => {
+  currentDrawableType = markerType;
   currentMarkerWidth = thickMarkerWidth;
+});
+
+const sticker1Button = document.getElementById("sticker1");
+sticker1Button!.innerHTML = sticker1;
+app.append(sticker1Button!);
+
+sticker1Button!.addEventListener("click", () => {
+  currentStickerType = sticker1;
+  currentDrawableType = stickerType;
+});
+
+const sticker2Button = document.getElementById("sticker2");
+sticker2Button!.innerHTML = sticker2;
+app.append(sticker2Button!);
+
+sticker2Button!.addEventListener("click", () => {
+  currentStickerType = sticker2;
+  currentDrawableType = stickerType;
+});
+const sticker3Button = document.getElementById("sticker3");
+sticker3Button!.innerHTML = sticker3;
+app.append(sticker3Button!);
+
+sticker3Button!.addEventListener("click", () => {
+  currentStickerType = sticker3;
+  currentDrawableType = stickerType;
 });
