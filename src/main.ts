@@ -17,9 +17,8 @@ const cursorStickerFactor = 2;
 const stickerOffsetFactor = 6;
 const yFactor = 2;
 
-const sticker1 = "😎";
-const sticker2 = "☠️";
-const sticker3 = "🔫";
+const stickersList: string[] = ["😎", "☠️", "🔫"];
+const firstIndex = 0;
 
 const markerType = "Marker";
 const stickerType = "Sticker";
@@ -161,7 +160,7 @@ const ctx = canvas.getContext("2d");
 const cursor = new Cursor({ x: 0, y: 0 });
 
 let currentMarkerWidth = thinMarkerWidth;
-let currentStickerType = sticker1;
+let currentStickerType = stickersList[firstIndex];
 let currentDrawableType = markerType;
 
 function drawCanvas() {
@@ -181,6 +180,17 @@ function createDrawableObject(): DrawableObject {
   } else {
     return new Marker(cursor.getPosition(), currentMarkerWidth);
   }
+}
+
+function createStickerButton(sticker: string) {
+  const stickerButton = document.createElement("button");
+  stickerButton.innerHTML = sticker;
+  app.append(stickerButton);
+
+  stickerButton.addEventListener("click", () => {
+    currentStickerType = sticker;
+    currentDrawableType = stickerType;
+  });
 }
 
 canvas.addEventListener("drawing-changed", () => {
@@ -283,28 +293,19 @@ thickButton!.addEventListener("click", () => {
   currentMarkerWidth = thickMarkerWidth;
 });
 
-const sticker1Button = document.getElementById("sticker1");
-sticker1Button!.innerHTML = sticker1;
-app.append(sticker1Button!);
+app.append(document.createElement("br"));
 
-sticker1Button!.addEventListener("click", () => {
-  currentStickerType = sticker1;
-  currentDrawableType = stickerType;
-});
+for (const sticker of stickersList) {
+  createStickerButton(sticker);
+}
 
-const sticker2Button = document.getElementById("sticker2");
-sticker2Button!.innerHTML = sticker2;
-app.append(sticker2Button!);
+const addCustomStickerButton = document.createElement("button");
+addCustomStickerButton.innerHTML = "+ Sticker";
+app.append(addCustomStickerButton);
 
-sticker2Button!.addEventListener("click", () => {
-  currentStickerType = sticker2;
-  currentDrawableType = stickerType;
-});
-const sticker3Button = document.getElementById("sticker3");
-sticker3Button!.innerHTML = sticker3;
-app.append(sticker3Button!);
+app.append(document.createElement("br"));
 
-sticker3Button!.addEventListener("click", () => {
-  currentStickerType = sticker3;
-  currentDrawableType = stickerType;
+addCustomStickerButton.addEventListener("click", () => {
+  const text = prompt("Type in a new sticker!", "🧽");
+  createStickerButton(text!);
 });
