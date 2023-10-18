@@ -118,7 +118,7 @@ function drawCanvas() {
     object.display(ctx!);
   }
 
-  if (cursor.isActive) {
+  if (cursor.isActive && !cursor.isPressed) {
     cursor.display(ctx!);
   }
 }
