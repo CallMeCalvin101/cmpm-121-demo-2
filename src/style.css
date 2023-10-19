@@ -84,4 +84,33 @@ button:focus-visible {
   border-style: solid;
   border-color: #1a1a1a;
   border-radius: 16px;
+  margin-bottom: 32px;
+}
+
+.edit {
+  background-color: #b2f8a7;
+}
+
+.pen {
+  background-color: #edebe1;
+}
+
+.baseSticker {
+  background-color: #99e2ff;
+}
+
+.customSticker {
+  background-color: #ff8593;
+}
+
+#thin {
+  font-weight: lighter;
+}
+
+#thick {
+  font-weight: bold;
+}
+
+#export {
+  background-color: #fff6b1;
 }

@@ -7,20 +7,22 @@ const canvasSize = 256;
 const canvasOrigin = 0;
 const firstElement = 0;
 
-const thinMarkerWidth = 1;
-const thickMarkerWidth = 5;
+const thinPenWidth = 1;
+const thickPenWidth = 5;
 
-const markerIcon = "*";
-const markerOffset = 4;
+const penIcon = "*";
+const penOffset = 4;
 const thickFactor = 2;
 const cursorStickerFactor = 2;
 const stickerOffsetFactor = 6;
 const yFactor = 2;
 
-const stickersList: string[] = ["😎", "☠️", "🔫", "🎲"];
+const stickersList: string[] = ["😎", "☠️", "🔫", "🎲", "🐢", "😈", "🌊"];
 const firstIndex = 0;
+const baseSticker = "baseSticker";
+const customSticker = "customSticker";
 
-const markerType = "Marker";
+const penType = "Pen";
 const stickerType = "Sticker";
 
 const exportScaleFactor = 4;
@@ -53,7 +55,7 @@ interface DrawableObject {
   drag(point: Coordinate): void;
 }
 
-class Marker implements DrawableObject {
+class Pen implements DrawableObject {
   line: Coordinate[] = [];
   width: number;
 
@@ -94,19 +96,16 @@ class Cursor implements DrawableObject {
   display(context: CanvasRenderingContext2D) {
     let calculatedOffset = 0;
     let xFactor = 1;
-    if (
-      currentDrawableType == markerType &&
-      currentMarkerWidth == thickMarkerWidth
-    ) {
+    if (currentDrawableType == penType && currentPenWidth == thickPenWidth) {
       context.font = "32px monospace";
-      calculatedOffset = markerOffset * thickFactor;
+      calculatedOffset = penOffset * thickFactor;
     } else if (currentDrawableType == stickerType) {
       context.font = "12px monospace";
-      calculatedOffset = markerOffset / cursorStickerFactor;
+      calculatedOffset = penOffset / cursorStickerFactor;
       xFactor = stickerOffsetFactor / cursorStickerFactor;
     } else {
       context.font = "16px monospace";
-      calculatedOffset = markerOffset;
+      calculatedOffset = penOffset;
     }
     context.fillText(
       this.getImage(),
@@ -127,7 +126,7 @@ class Cursor implements DrawableObject {
     if (currentDrawableType == stickerType) {
       return currentStickerType;
     } else {
-      return markerIcon;
+      return penIcon;
     }
   }
 }
@@ -142,11 +141,12 @@ class Sticker implements DrawableObject {
   }
 
   display(context: CanvasRenderingContext2D) {
+    context.fillStyle = "black";
     context.font = "32px monospace";
     context.fillText(
       this.type,
-      this.location.x - stickerOffsetFactor * markerOffset,
-      this.location.y + yFactor * markerOffset
+      this.location.x - stickerOffsetFactor * penOffset,
+      this.location.y + yFactor * penOffset
     );
   }
 
@@ -162,9 +162,9 @@ let currentLine: DrawableObject;
 const ctx = canvas.getContext("2d");
 const cursor = new Cursor({ x: 0, y: 0 });
 
-let currentMarkerWidth = thinMarkerWidth;
+let currentPenWidth = thinPenWidth;
 let currentStickerType = stickersList[firstIndex];
-let currentDrawableType = markerType;
+let currentDrawableType = penType;
 
 function drawCanvas() {
   ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
@@ -181,13 +181,14 @@ function createDrawableObject(): DrawableObject {
   if (currentDrawableType == stickerType) {
     return new Sticker(cursor.getPosition(), currentStickerType);
   } else {
-    return new Marker(cursor.getPosition(), currentMarkerWidth);
+    return new Pen(cursor.getPosition(), currentPenWidth);
   }
 }
 
-function createStickerButton(sticker: string) {
+function createStickerButton(sticker: string, type: string) {
   const stickerButton = document.createElement("button");
   stickerButton.innerHTML = sticker;
+  stickerButton.setAttribute("class", type);
   app.append(stickerButton);
 
   stickerButton.addEventListener("click", () => {
@@ -243,7 +244,7 @@ canvas.addEventListener("mouseup", () => {
 app.append(document.createElement("br"));
 
 const clearButton = document.getElementById("clear");
-clearButton!.innerHTML = "clear";
+clearButton!.innerHTML = "Clear [_]";
 app.append(clearButton!);
 
 clearButton!.addEventListener("click", () => {
@@ -253,7 +254,7 @@ clearButton!.addEventListener("click", () => {
 });
 
 const undoButton = document.getElementById("undo");
-undoButton!.innerHTML = "undo";
+undoButton!.innerHTML = "Undo ⟲";
 app.append(undoButton!);
 
 undoButton!.addEventListener("click", () => {
@@ -266,7 +267,7 @@ undoButton!.addEventListener("click", () => {
 });
 
 const redoButton = document.getElementById("redo");
-redoButton!.innerHTML = "redo";
+redoButton!.innerHTML = "Redo ⟳";
 app.append(redoButton!);
 
 redoButton!.addEventListener("click", () => {
@@ -278,41 +279,9 @@ redoButton!.addEventListener("click", () => {
   }
 });
 
-const thinButton = document.getElementById("thin");
-thinButton!.innerHTML = "thin";
-app.append(thinButton!);
-
-thinButton!.addEventListener("click", () => {
-  currentDrawableType = markerType;
-  currentMarkerWidth = thinMarkerWidth;
-});
-
-const thickButton = document.getElementById("thick");
-thickButton!.innerHTML = "thick";
-app.append(thickButton!);
-
-thickButton!.addEventListener("click", () => {
-  currentDrawableType = markerType;
-  currentMarkerWidth = thickMarkerWidth;
-});
-
-app.append(document.createElement("br"));
-
-for (const sticker of stickersList) {
-  createStickerButton(sticker);
-}
-
-const addCustomStickerButton = document.createElement("button");
-addCustomStickerButton.innerHTML = "+ Sticker";
-app.append(addCustomStickerButton);
-
-addCustomStickerButton.addEventListener("click", () => {
-  const text = prompt("Type in a new sticker!", "🧽");
-  createStickerButton(text!);
-});
-
 const exportButton = document.createElement("button");
 exportButton.innerHTML = "Share Art 😎";
+exportButton.setAttribute("id", "export");
 app.append(exportButton);
 
 exportButton.addEventListener("click", () => {
@@ -322,6 +291,13 @@ exportButton.addEventListener("click", () => {
   exportCanvas.height = canvasSize * exportScaleFactor;
 
   const exportContext = exportCanvas.getContext("2d");
+  exportContext!.fillStyle = "white";
+  exportContext!.fillRect(
+    canvasOrigin,
+    canvasOrigin,
+    exportCanvas.width,
+    exportCanvas.height
+  );
   exportContext?.scale(exportScaleFactor, exportScaleFactor);
   for (const object of allItems) {
     object.display(exportContext!);
@@ -335,3 +311,39 @@ exportButton.addEventListener("click", () => {
 });
 
 app.append(document.createElement("br"));
+
+const thinButton = document.getElementById("thin");
+thinButton!.innerHTML = "Thin";
+app.append(thinButton!);
+
+thinButton!.addEventListener("click", () => {
+  currentDrawableType = penType;
+  currentPenWidth = thinPenWidth;
+});
+
+const thickButton = document.getElementById("thick");
+thickButton!.innerHTML = "Thick";
+app.append(thickButton!);
+
+thickButton!.addEventListener("click", () => {
+  currentDrawableType = penType;
+  currentPenWidth = thickPenWidth;
+});
+
+app.append(document.createElement("br"));
+
+for (const sticker of stickersList) {
+  createStickerButton(sticker, baseSticker);
+}
+
+app.append(document.createElement("br"));
+
+const addCustomStickerButton = document.createElement("button");
+addCustomStickerButton.innerHTML = "+ Sticker";
+addCustomStickerButton.setAttribute("class", "customSticker");
+app.append(addCustomStickerButton);
+
+addCustomStickerButton.addEventListener("click", () => {
+  const text = prompt("Type in a new sticker!", "🧽");
+  createStickerButton(text!, customSticker);
+});
