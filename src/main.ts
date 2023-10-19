@@ -36,6 +36,8 @@ const penType = "Pen";
 const stickerType = "Sticker";
 
 const exportScaleFactor = 4;
+const exportOffsetX = 64;
+const exportOffsetY = 4;
 
 document.title = gameName;
 
@@ -333,8 +335,15 @@ exportButton.addEventListener("click", () => {
   exportContext?.scale(exportScaleFactor, exportScaleFactor);
   for (const object of allItems) {
     object.display(exportContext!);
-    console.log("test");
   }
+
+  exportContext!.fillStyle = "black";
+  exportContext!.font = "8px monospace";
+  exportContext!.fillText(
+    gameName,
+    canvasSize - exportOffsetX,
+    canvasSize - exportOffsetY
+  );
 
   const anchor = document.createElement("a");
   anchor.href = exportCanvas.toDataURL("image/png");
