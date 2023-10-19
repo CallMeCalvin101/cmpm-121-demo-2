@@ -92,7 +92,7 @@ button:focus-visible {
 }
 
 .pen {
-  background-color: #edebe1;
+  background-color: #fbfbfb;
 }
 
 .baseSticker {
@@ -105,6 +105,10 @@ button:focus-visible {
 
 #thin {
   font-weight: lighter;
+}
+
+#medium {
+  font-weight: normal;
 }
 
 #thick {

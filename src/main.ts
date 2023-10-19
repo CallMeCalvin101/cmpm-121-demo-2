@@ -8,11 +8,21 @@ const canvasOrigin = 0;
 const firstElement = 0;
 
 const thinPenWidth = 1;
+const mediumPenWidth = 3;
 const thickPenWidth = 5;
+const penColorsList: string[][] = [
+  ["black", "⚫"],
+  ["red", "🔴"],
+  ["yellow", "🟡"],
+  ["green", "🟢"],
+  ["blue", "🔵"],
+  ["purple", "🟣"],
+];
 
 const penIcon = "*";
 const penOffset = 4;
 const thickFactor = 2;
+const mediumFactor = 1.5;
 const cursorStickerFactor = 2;
 const stickerOffsetFactor = 6;
 const yFactor = 2;
@@ -58,14 +68,17 @@ interface DrawableObject {
 class Pen implements DrawableObject {
   line: Coordinate[] = [];
   width: number;
+  color: string;
 
-  constructor(point: Coordinate, width: number) {
+  constructor(point: Coordinate, width: number, color: string) {
     this.line.push(point);
     this.width = width;
+    this.color = color;
   }
 
   display(context: CanvasRenderingContext2D) {
     if (this.line.length) {
+      context.strokeStyle = this.color;
       context.lineWidth = this.width;
       context.beginPath();
       const [firstPair, ...otherPairs] = this.line;
@@ -96,9 +109,15 @@ class Cursor implements DrawableObject {
   display(context: CanvasRenderingContext2D) {
     let calculatedOffset = 0;
     let xFactor = 1;
-    if (currentDrawableType == penType && currentPenWidth == thickPenWidth) {
+    if (currentDrawableType == penType && penData.width == thickPenWidth) {
       context.font = "32px monospace";
       calculatedOffset = penOffset * thickFactor;
+    } else if (
+      currentDrawableType == penType &&
+      penData.width == mediumPenWidth
+    ) {
+      context.font = "24px monospace";
+      calculatedOffset = penOffset * mediumFactor;
     } else if (currentDrawableType == stickerType) {
       context.font = "12px monospace";
       calculatedOffset = penOffset / cursorStickerFactor;
@@ -162,9 +181,10 @@ let currentLine: DrawableObject;
 const ctx = canvas.getContext("2d");
 const cursor = new Cursor({ x: 0, y: 0 });
 
-let currentPenWidth = thinPenWidth;
 let currentStickerType = stickersList[firstIndex];
 let currentDrawableType = penType;
+
+const penData = { width: thinPenWidth, color: "black" };
 
 function drawCanvas() {
   ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
@@ -181,8 +201,20 @@ function createDrawableObject(): DrawableObject {
   if (currentDrawableType == stickerType) {
     return new Sticker(cursor.getPosition(), currentStickerType);
   } else {
-    return new Pen(cursor.getPosition(), currentPenWidth);
+    return new Pen(cursor.getPosition(), penData.width, penData.color);
   }
+}
+
+function createPenColorButton(color: string, icon: string) {
+  const colorButton = document.createElement("button");
+  colorButton.innerHTML = icon;
+  colorButton.setAttribute("class", "pen");
+  app.append(colorButton);
+
+  colorButton.addEventListener("click", () => {
+    penData.color = color;
+    currentDrawableType = penType;
+  });
 }
 
 function createStickerButton(sticker: string, type: string) {
@@ -312,23 +344,28 @@ exportButton.addEventListener("click", () => {
 
 app.append(document.createElement("br"));
 
-const thinButton = document.getElementById("thin");
-thinButton!.innerHTML = "Thin";
-app.append(thinButton!);
+const penButton = document.getElementById("penTool");
+penButton!.innerHTML = "Pen 🖊️";
+penButton?.setAttribute("id", "thin");
+app.append(penButton!);
 
-thinButton!.addEventListener("click", () => {
-  currentDrawableType = penType;
-  currentPenWidth = thinPenWidth;
+penButton!.addEventListener("click", () => {
+  if (penData.width == thinPenWidth) {
+    penData.width = mediumPenWidth;
+    penButton?.setAttribute("id", "medium");
+  } else if (penData.width == mediumPenWidth) {
+    penData.width = thickPenWidth;
+    penButton?.setAttribute("id", "thick");
+  } else {
+    penData.width = thinPenWidth;
+    penButton?.setAttribute("id", "thin");
+  }
 });
 
-const thickButton = document.getElementById("thick");
-thickButton!.innerHTML = "Thick";
-app.append(thickButton!);
-
-thickButton!.addEventListener("click", () => {
-  currentDrawableType = penType;
-  currentPenWidth = thickPenWidth;
-});
+for (const colorInfo of penColorsList) {
+  const [color, icon] = colorInfo;
+  createPenColorButton(color, icon);
+}
 
 app.append(document.createElement("br"));
 
