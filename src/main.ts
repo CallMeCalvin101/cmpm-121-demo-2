@@ -17,20 +17,23 @@ const cursorStickerFactor = 2;
 const stickerOffsetFactor = 6;
 const yFactor = 2;
 
-const stickersList: string[] = ["😎", "☠️", "🔫"];
+const stickersList: string[] = ["😎", "☠️", "🔫", "🎲"];
 const firstIndex = 0;
 
 const markerType = "Marker";
 const stickerType = "Sticker";
 
+const exportScaleFactor = 4;
+
 document.title = gameName;
+
+// Canvas, clear, and mouse code from https://shoddy-paint.glitch.me/paint0.html
+// Array data saving implementation from https://shoddy-paint.glitch.me/paint1.html
 
 const header: HTMLElement | null = document.createElement("h1");
 header.innerHTML = gameName;
 app.append(header);
 
-// Canvas, clear, and mouse code from https://shoddy-paint.glitch.me/paint0.html
-// Array data saving implementation from https://shoddy-paint.glitch.me/paint1.html
 const canvas = document.createElement("canvas");
 canvas.setAttribute("id", "canvas");
 canvas.width = canvasSize;
@@ -303,9 +306,32 @@ const addCustomStickerButton = document.createElement("button");
 addCustomStickerButton.innerHTML = "+ Sticker";
 app.append(addCustomStickerButton);
 
-app.append(document.createElement("br"));
-
 addCustomStickerButton.addEventListener("click", () => {
   const text = prompt("Type in a new sticker!", "🧽");
   createStickerButton(text!);
 });
+
+const exportButton = document.createElement("button");
+exportButton.innerHTML = "Share Art 😎";
+app.append(exportButton);
+
+exportButton.addEventListener("click", () => {
+  const exportCanvas = document.createElement("canvas");
+  canvas.setAttribute("id", "canvas");
+  exportCanvas.width = canvasSize * exportScaleFactor;
+  exportCanvas.height = canvasSize * exportScaleFactor;
+
+  const exportContext = exportCanvas.getContext("2d");
+  exportContext?.scale(exportScaleFactor, exportScaleFactor);
+  for (const object of allItems) {
+    object.display(exportContext!);
+    console.log("test");
+  }
+
+  const anchor = document.createElement("a");
+  anchor.href = exportCanvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
+
+app.append(document.createElement("br"));
