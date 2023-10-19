@@ -118,3 +118,11 @@ button:focus-visible {
 #export {
   background-color: #fff6b1;
 }
+
+#angle {
+  margin-top: 32px;
+}
+
+#angleButton {
+  background-color: #bcbcbc;
+}
