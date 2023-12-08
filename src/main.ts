@@ -1,448 +1,127 @@
 import "./style.css";
 
-const app: HTMLDivElement = document.querySelector("#app")!;
+const canvas = document.getElementById("game")!;
+const gameHeight = (canvas! as HTMLCanvasElement).height;
+const gameWidth = ((canvas! as HTMLCanvasElement).width * 3) / 4;
+const uiWidth = (canvas! as HTMLCanvasElement).width - gameWidth;
+const ctx = (canvas! as HTMLCanvasElement).getContext("2d")!;
 
-const gameName = "D's Rawing App";
-const canvasSize = 256;
-const canvasOrigin = 0;
-const firstElement = 0;
+const CLICKABLE_SIZE = 50;
 
-const thinPenWidth = 1;
-const mediumPenWidth = 3;
-const thickPenWidth = 5;
-const penColorsList: string[][] = [
-  ["black", "⚫"],
-  ["red", "🔴"],
-  ["yellow", "🟡"],
-  ["green", "🟢"],
-  ["blue", "🔵"],
-  ["purple", "🟣"],
-];
+const drawingChangedEvent: Event = new Event("drawing-changed");
 
-const penIcon = "*";
-const penOffset = 4;
-const thickFactor = 2;
-const mediumFactor = 1.5;
-const cursorStickerFactor = 2;
-const stickerOffsetFactor = 6;
-const yFactor = 2;
-const radianFactor = 180;
-const identityVal = 1;
-const noneVal = 0;
+// Define all states of the game
+const states = Object.freeze({
+  startGame: 0,
+  playingGame: 1,
+});
 
-const stickersList: string[] = ["😎", "☠️", "🔫", "🎲", "🐢", "😈", "🌊"];
-const firstIndex = 0;
-const baseSticker = "baseSticker";
-const customSticker = "customSticker";
+const gameController = { curState: 0, curOrder: 0 };
+gameController.curState = states.startGame;
 
-const penType = "Pen";
-const stickerType = "Sticker";
+const gameMouse = { x: 0, y: 0 };
+let allClickables: Clickable[] = [];
 
-const exportScaleFactor = 4;
-const exportOffsetX = 64;
-const exportOffsetY = 4;
-
-document.title = gameName;
-
-// Canvas, clear, and mouse code from https://shoddy-paint.glitch.me/paint0.html
-// Array data saving implementation from https://shoddy-paint.glitch.me/paint1.html
-
-const header: HTMLElement | null = document.createElement("h1");
-header.innerHTML = gameName;
-app.append(header);
-
-const canvas = document.createElement("canvas");
-canvas.setAttribute("id", "canvas");
-canvas.width = canvasSize;
-canvas.height = canvasSize;
-app.append(canvas);
-
-const drawChangedEvent: Event = new Event("drawing-changed");
-const cursorChangedEvent: Event = new Event("cursor-changed");
-const angleChangedEvent: Event = new Event("angle-changed");
-
-interface Coordinate {
-  x: number;
-  y: number;
+function updateMousePos(x: number, y: number) {
+  gameMouse.x = x;
+  gameMouse.y = y;
 }
 
-interface DrawableObject {
-  display(ctx: CanvasRenderingContext2D): void;
-  drag(point: Coordinate): void;
-}
+class Clickable {
+  constructor(
+    readonly xPos: number,
+    readonly yPos: number,
+    readonly order: number,
+    readonly size = CLICKABLE_SIZE
+  ) {}
 
-class Pen implements DrawableObject {
-  line: Coordinate[] = [];
-  width: number;
-  color: string;
-
-  constructor(point: Coordinate, width: number, color: string) {
-    this.line.push(point);
-    this.width = width;
-    this.color = color;
-  }
-
-  display(context: CanvasRenderingContext2D) {
-    if (this.line.length) {
-      context.strokeStyle = this.color;
-      context.lineWidth = this.width;
-      context.beginPath();
-      const [firstPair, ...otherPairs] = this.line;
-      context.moveTo(firstPair.x, firstPair.y);
-      for (const pair of otherPairs) {
-        context.lineTo(pair.x, pair.y);
-      }
-      context.stroke();
-    }
-  }
-
-  drag(point: Coordinate) {
-    this.line.push(point);
-  }
-}
-
-class Cursor implements DrawableObject {
-  isActive: boolean;
-  isPressed: boolean;
-  location: Coordinate;
-
-  constructor(point: Coordinate) {
-    this.isActive = false;
-    this.isPressed = false;
-    this.location = point;
-  }
-
-  display(context: CanvasRenderingContext2D) {
-    let calculatedOffset = 0;
-    let xFactor = 1;
-    if (currentDrawableType == penType && penData.width == thickPenWidth) {
-      context.font = "32px monospace";
-      calculatedOffset = penOffset * thickFactor;
-    } else if (
-      currentDrawableType == penType &&
-      penData.width == mediumPenWidth
-    ) {
-      context.font = "24px monospace";
-      calculatedOffset = penOffset * mediumFactor;
-    } else if (currentDrawableType == stickerType) {
-      context.font = "12px monospace";
-      calculatedOffset = penOffset / cursorStickerFactor;
-      xFactor = stickerOffsetFactor / cursorStickerFactor;
-    } else {
-      context.font = "16px monospace";
-      calculatedOffset = penOffset;
-    }
-    context.fillText(
-      this.getImage(),
-      this.location.x - xFactor * calculatedOffset,
-      this.location.y + yFactor * calculatedOffset
+  isMouseInside(): boolean {
+    return (
+      Math.sqrt(
+        Math.pow(gameMouse.x - this.xPos, 2) +
+          Math.pow(gameMouse.y - this.yPos, 2)
+      ) < this.size
     );
   }
 
-  drag(point: Coordinate) {
-    this.location = point;
-  }
+  draw() {
+    ctx.beginPath();
+    ctx.fillStyle = "red";
+    ctx.arc(this.xPos, this.yPos, this.size, 0, 2 * Math.PI);
+    ctx.fill();
 
-  getPosition(): Coordinate {
-    return this.location;
-  }
-
-  getImage() {
-    if (currentDrawableType == stickerType) {
-      return stickerData.sticker;
-    } else {
-      return penIcon;
-    }
-  }
-}
-
-class Sticker implements DrawableObject {
-  location: Coordinate;
-  type: string;
-  angle: number;
-
-  constructor(point: Coordinate, type: string, angle: number) {
-    this.location = point;
-    this.type = type;
-    this.angle = angle;
-  }
-
-  display(context: CanvasRenderingContext2D) {
-    context.fillStyle = "black";
-    context.translate(this.location.x, this.location.y);
-    context.rotate(this.calculateAngle(this.angle));
-    context.translate(-this.location.x, -this.location.y);
-    context.font = "32px monospace";
-    context.fillText(
-      this.type,
-      this.location.x - stickerOffsetFactor * penOffset,
-      this.location.y + yFactor * penOffset
-    );
-
-    context.setTransform(
-      identityVal,
-      noneVal,
-      noneVal,
-      identityVal,
-      noneVal,
-      noneVal
+    ctx.fillStyle = "black";
+    ctx.font = `${this.size}px sans-serif`;
+    ctx.fillText(
+      `${this.order}`,
+      this.xPos - this.size / 4,
+      this.yPos + this.size / 4
     );
   }
-
-  drag(point: Coordinate) {
-    this.location = point;
-  }
-
-  calculateAngle(degree: number): number {
-    return (degree * Math.PI) / radianFactor;
-  }
-}
-
-const allItems: DrawableObject[] = [];
-const redoItems: DrawableObject[] = [];
-let currentLine: DrawableObject;
-
-const ctx = canvas.getContext("2d");
-const cursor = new Cursor({ x: 0, y: 0 });
-
-let currentDrawableType = penType;
-const penData = { width: thinPenWidth, color: "black" };
-const stickerData = { sticker: stickersList[firstIndex], angle: 0 };
-
-function drawCanvas() {
-  ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
-  for (const object of allItems) {
-    object.display(ctx!);
-  }
-
-  if (cursor.isActive && !cursor.isPressed) {
-    cursor.display(ctx!);
-  }
-}
-
-function createDrawableObject(): DrawableObject {
-  if (currentDrawableType == stickerType) {
-    return new Sticker(
-      cursor.getPosition(),
-      stickerData.sticker,
-      stickerData.angle
-    );
-  } else {
-    return new Pen(cursor.getPosition(), penData.width, penData.color);
-  }
-}
-
-function createPenColorButton(color: string, icon: string) {
-  const colorButton = document.createElement("button");
-  colorButton.innerHTML = icon;
-  colorButton.setAttribute("class", "pen");
-  app.append(colorButton);
-
-  colorButton.addEventListener("click", () => {
-    penData.color = color;
-    currentDrawableType = penType;
-  });
-}
-
-function createStickerButton(sticker: string, type: string) {
-  const stickerButton = document.createElement("button");
-  stickerButton.innerHTML = sticker;
-  stickerButton.setAttribute("class", type);
-  app.append(stickerButton);
-
-  stickerButton.addEventListener("click", () => {
-    stickerData.sticker = sticker;
-    currentDrawableType = stickerType;
-  });
 }
 
 canvas.addEventListener("drawing-changed", () => {
-  drawCanvas();
-});
-
-canvas.addEventListener("cursor-changed", () => {
-  drawCanvas();
+  drawGame();
 });
 
 canvas.addEventListener("mouseenter", (e) => {
-  cursor.isActive = true;
-  cursor.drag({ x: e.offsetX, y: e.offsetY });
-  canvas.dispatchEvent(cursorChangedEvent);
-});
-
-canvas.addEventListener("mouseout", () => {
-  cursor.isActive = false;
-  cursor.isPressed = false;
-  canvas.dispatchEvent(cursorChangedEvent);
-});
-
-canvas.addEventListener("mousedown", (e) => {
-  cursor.isPressed = true;
-  cursor.drag({ x: e.offsetX, y: e.offsetY });
-
-  currentLine = createDrawableObject();
-  allItems.push(currentLine);
-
-  redoItems.splice(firstElement, redoItems.length);
-
-  canvas.dispatchEvent(drawChangedEvent);
+  updateMousePos(e.offsetX, e.offsetY);
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  cursor.drag({ x: e.offsetX, y: e.offsetY });
-  canvas.dispatchEvent(cursorChangedEvent);
-  if (cursor.isPressed) {
-    currentLine.drag(cursor.getPosition());
+  updateMousePos(e.offsetX, e.offsetY);
+});
+
+canvas.addEventListener("mousedown", (e) => {
+  updateMousePos(e.offsetX, e.offsetY);
+  checkAllClickables();
+  if (allClickables.length <= 0) {
+    setGame(3);
   }
+  canvas.dispatchEvent(drawingChangedEvent);
 });
 
-canvas.addEventListener("mouseup", () => {
-  cursor.isPressed = false;
-});
+function generateNewClickables(numToCreate: number) {
+  for (let i = 0; i < numToCreate; i++) {
+    const c = new Clickable(
+      Math.random() * gameWidth,
+      Math.random() * gameHeight,
+      i
+    );
 
-app.append(document.createElement("br"));
-
-const clearButton = document.getElementById("clear");
-clearButton!.innerHTML = "Clear [_]";
-app.append(clearButton!);
-
-clearButton!.addEventListener("click", () => {
-  allItems.splice(firstElement, allItems.length);
-  redoItems.splice(firstElement, redoItems.length);
-  canvas.dispatchEvent(drawChangedEvent);
-});
-
-const undoButton = document.getElementById("undo");
-undoButton!.innerHTML = "Undo ⟲";
-app.append(undoButton!);
-
-undoButton!.addEventListener("click", () => {
-  const undoneLine = allItems.pop();
-
-  if (undoneLine != undefined) {
-    redoItems.push(undoneLine);
-    canvas.dispatchEvent(drawChangedEvent);
+    allClickables.push(c);
   }
-});
-
-const redoButton = document.getElementById("redo");
-redoButton!.innerHTML = "Redo ⟳";
-app.append(redoButton!);
-
-redoButton!.addEventListener("click", () => {
-  const redoneLine = redoItems.pop();
-
-  if (redoneLine != undefined) {
-    allItems.push(redoneLine);
-    canvas.dispatchEvent(drawChangedEvent);
-  }
-});
-
-const exportButton = document.createElement("button");
-exportButton.innerHTML = "Share Art 😎";
-exportButton.setAttribute("id", "export");
-app.append(exportButton);
-
-exportButton.addEventListener("click", () => {
-  const exportCanvas = document.createElement("canvas");
-  canvas.setAttribute("id", "canvas");
-  exportCanvas.width = canvasSize * exportScaleFactor;
-  exportCanvas.height = canvasSize * exportScaleFactor;
-
-  const exportContext = exportCanvas.getContext("2d");
-  exportContext!.fillStyle = "white";
-  exportContext!.fillRect(
-    canvasOrigin,
-    canvasOrigin,
-    exportCanvas.width,
-    exportCanvas.height
-  );
-  exportContext?.scale(exportScaleFactor, exportScaleFactor);
-  for (const object of allItems) {
-    object.display(exportContext!);
-  }
-
-  exportContext!.fillStyle = "black";
-  exportContext!.font = "8px monospace";
-  exportContext!.fillText(
-    gameName,
-    canvasSize - exportOffsetX,
-    canvasSize - exportOffsetY
-  );
-
-  const anchor = document.createElement("a");
-  anchor.href = exportCanvas.toDataURL("image/png");
-  anchor.download = "sketchpad.png";
-  anchor.click();
-});
-
-app.append(document.createElement("br"));
-
-const penButton = document.getElementById("penTool");
-penButton!.innerHTML = "Pen 🖊️";
-penButton?.setAttribute("id", "thin");
-app.append(penButton!);
-
-penButton!.addEventListener("click", () => {
-  currentDrawableType = penType;
-  if (penData.width == thinPenWidth) {
-    penData.width = mediumPenWidth;
-    penButton?.setAttribute("id", "medium");
-  } else if (penData.width == mediumPenWidth) {
-    penData.width = thickPenWidth;
-    penButton?.setAttribute("id", "thick");
-  } else {
-    penData.width = thinPenWidth;
-    penButton?.setAttribute("id", "thin");
-  }
-});
-
-for (const colorInfo of penColorsList) {
-  const [color, icon] = colorInfo;
-  createPenColorButton(color, icon);
 }
 
-app.append(document.createElement("br"));
-
-for (const sticker of stickersList) {
-  createStickerButton(sticker, baseSticker);
+function checkAllClickables() {
+  allClickables.forEach((c) => {
+    if (c.isMouseInside() && c.order == gameController.curOrder) {
+      gameController.curOrder += 1;
+      allClickables = allClickables.slice(1);
+      return;
+    }
+  });
 }
 
-app.append(document.createElement("br"));
+function drawGame() {
+  // Draws Game Space
+  ctx.fillStyle = "#DAE9EF";
+  ctx.fillRect(0, 0, gameWidth, gameHeight);
 
-const addCustomStickerButton = document.createElement("button");
-addCustomStickerButton.innerHTML = "+ Sticker";
-addCustomStickerButton.setAttribute("class", "customSticker");
-app.append(addCustomStickerButton);
+  // Draws All Game Elements
+  allClickables.forEach((c) => {
+    c.draw();
+  });
 
-addCustomStickerButton.addEventListener("click", () => {
-  const text = prompt("Type in a new sticker!", "🧽");
-  createStickerButton(text!, customSticker);
-});
+  // Draws UI Bar
+  ctx.fillStyle = "#8BA4B4";
+  ctx.fillRect(gameWidth, 0, uiWidth, gameHeight);
+}
 
-app.append(document.createElement("br"));
+function setGame(numClickables: number) {
+  generateNewClickables(numClickables);
+  gameController.curOrder = 0;
+}
 
-const angleRange = document.getElementById("angle");
-app.append(angleRange!);
-
-app.append(document.createElement("br"));
-
-const setAngleButton = document.createElement("button");
-setAngleButton.innerHTML = "Change The Angle Here!";
-setAngleButton.setAttribute("id", "angleButton");
-app.append(setAngleButton);
-
-canvas.addEventListener("angle-changed", () => {
-  stickerData.angle = parseInt((angleRange! as HTMLInputElement).value);
-  setAngleButton.innerHTML = `${(angleRange! as HTMLInputElement).value}°`;
-});
-
-angleRange!.addEventListener("input", () => {
-  canvas.dispatchEvent(angleChangedEvent);
-});
-
-setAngleButton.addEventListener("click", () => {
-  const input = prompt("Set Angle", "0");
-  (angleRange! as HTMLInputElement).value = input!;
-  canvas.dispatchEvent(angleChangedEvent);
-});
+setGame(4);
+drawGame();

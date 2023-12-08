@@ -1,0 +1,48 @@
+{
+  "Items": {
+    "Normal Items": [
+      {
+        "Name": "Coins",
+        "Description": "You found a collection of miscellaneous coins. It becomes apparent that these are currency from decades past. While conventional shops may not accept them as payment, they hold value for antique collectors, presenting an opportunity to sell them at a respectable price."
+      },
+      {
+        "Name": "Withered Flowers",
+        "Description": "These appear to be flowers that were once tenderly placed on the grave long ago. The passage of time has taken its toll, causing them to wilt and, in some cases, decompose."
+      },
+      {
+        "Name": "Rocks",
+        "Description": "You found some rocks."
+      },
+      {
+        "Name": "Unidentifiable Trash",
+        "Description": "It’s obvious that this is some sort of trash. You just don’t know what it is exactly (or what it is made of)."
+      },
+      {
+        "Name": "Gold Bars",
+        "Description": "If you are here for money, you found what you need. These gold bars will fetch a great price."
+      },
+      {
+        "Name": "Bugs",
+        "Description": "Bugs, typical residents beside the deceased. You might want to put them back where they are before their entire family comes looking for you."
+      }
+    ],
+    "Story Items": [
+      {
+        "Name": "Photograph",
+        "Description": "A weathered photograph captures a bygone moment, its hues softened by the relentless march of time. Despite the fading, the subject remains distinctly visible: a smiling man engrossed in painting a captivating portrait of a beautiful woman. The edges of the photograph, softened by time, hinted at the passage of years."
+      },
+      {
+        "Name": "Paintbrush",
+        "Description": "A well-worn paintbrush marked by the passage of time. The paint on its end has gracefully chipped away with age, and on the handle, the initials T. R. are carved. Hints of splattered paint on the handle tell tales of its long and dedicated use. The bristles, though stiff from periods of non-use, reflect a cherished possession, revealing that its owner holds this paintbrush in special regard."
+      },
+      {
+        "Name": "Ring",
+        "Description": "This exquisite ring boasts an array of delicate gemstones, with a prominently cut sapphire taking center stage. Set on a platinum gold band, the craftsmanship exudes opulence and sophistication. Undoubtedly, the wearer of this ring is someone of substantial wealth and high social standing."
+      },
+      {
+        "Name": "Lock of Female Hair",
+        "Description": "Clearly, this is a bundle of female hair, secured by an unpretentious and inexpensive ribbon. It appears that the possessor of this lock of hair belongs to a less affluent social status."
+      }
+    ]
+  }
+}
