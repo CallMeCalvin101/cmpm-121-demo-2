@@ -56,7 +56,6 @@ app.append(canvas);
 
 const drawChangedEvent: Event = new Event("drawing-changed");
 const cursorChangedEvent: Event = new Event("cursor-changed");
-const angleChangedEvent: Event = new Event("angle-changed");
 
 interface Coordinate {
   x: number;
@@ -146,7 +145,7 @@ class Cursor implements DrawableObject {
 
   getImage() {
     if (currentDrawableType == stickerType) {
-      return stickerData.sticker;
+      return currentStickerType;
     } else {
       return penIcon;
     }
@@ -156,42 +155,24 @@ class Cursor implements DrawableObject {
 class Sticker implements DrawableObject {
   location: Coordinate;
   type: string;
-  angle: number;
 
-  constructor(point: Coordinate, type: string, angle: number) {
+  constructor(point: Coordinate, type: string) {
     this.location = point;
     this.type = type;
-    this.angle = angle;
   }
 
   display(context: CanvasRenderingContext2D) {
     context.fillStyle = "black";
-    context.translate(this.location.x, this.location.y);
-    context.rotate(this.calculateAngle(this.angle));
-    context.translate(-this.location.x, -this.location.y);
     context.font = "32px monospace";
     context.fillText(
       this.type,
       this.location.x - stickerOffsetFactor * penOffset,
       this.location.y + yFactor * penOffset
     );
-
-    context.setTransform(
-      identityVal,
-      noneVal,
-      noneVal,
-      identityVal,
-      noneVal,
-      noneVal
-    );
   }
 
   drag(point: Coordinate) {
     this.location = point;
-  }
-
-  calculateAngle(degree: number): number {
-    return (degree * Math.PI) / radianFactor;
   }
 }
 
@@ -202,9 +183,10 @@ let currentLine: DrawableObject;
 const ctx = canvas.getContext("2d");
 const cursor = new Cursor({ x: 0, y: 0 });
 
+let currentStickerType = stickersList[firstIndex];
 let currentDrawableType = penType;
+
 const penData = { width: thinPenWidth, color: "black" };
-const stickerData = { sticker: stickersList[firstIndex], angle: 0 };
 
 function drawCanvas() {
   ctx?.clearRect(canvasOrigin, canvasOrigin, canvas.width, canvas.height);
@@ -219,11 +201,7 @@ function drawCanvas() {
 
 function createDrawableObject(): DrawableObject {
   if (currentDrawableType == stickerType) {
-    return new Sticker(
-      cursor.getPosition(),
-      stickerData.sticker,
-      stickerData.angle
-    );
+    return new Sticker(cursor.getPosition(), currentStickerType);
   } else {
     return new Pen(cursor.getPosition(), penData.width, penData.color);
   }
@@ -248,7 +226,7 @@ function createStickerButton(sticker: string, type: string) {
   app.append(stickerButton);
 
   stickerButton.addEventListener("click", () => {
-    stickerData.sticker = sticker;
+    currentStickerType = sticker;
     currentDrawableType = stickerType;
   });
 }
@@ -345,7 +323,6 @@ penButton?.setAttribute("id", "thin");
 app.append(penButton!);
 
 penButton!.addEventListener("click", () => {
-  currentDrawableType = penType;
   if (penData.width == thinPenWidth) {
     penData.width = mediumPenWidth;
     penButton?.setAttribute("id", "medium");
@@ -379,31 +356,4 @@ app.append(addCustomStickerButton);
 addCustomStickerButton.addEventListener("click", () => {
   const text = prompt("Type in a new sticker!", "🧽");
   createStickerButton(text!, customSticker);
-});
-
-app.append(document.createElement("br"));
-
-const angleRange = document.getElementById("angle");
-app.append(angleRange!);
-
-app.append(document.createElement("br"));
-
-const setAngleButton = document.createElement("button");
-setAngleButton.innerHTML = "Change The Angle Here!";
-setAngleButton.setAttribute("id", "angleButton");
-app.append(setAngleButton);
-
-canvas.addEventListener("angle-changed", () => {
-  stickerData.angle = parseInt((angleRange! as HTMLInputElement).value);
-  setAngleButton.innerHTML = `${(angleRange! as HTMLInputElement).value}°`;
-});
-
-angleRange!.addEventListener("input", () => {
-  canvas.dispatchEvent(angleChangedEvent);
-});
-
-setAngleButton.addEventListener("click", () => {
-  const input = prompt("Set Angle", "0");
-  (angleRange! as HTMLInputElement).value = input!;
-  canvas.dispatchEvent(angleChangedEvent);
 });
