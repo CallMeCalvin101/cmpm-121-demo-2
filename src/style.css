@@ -96,6 +96,41 @@ button:focus-visible {
   }
 }
 
-.canvas {
-  color: lightskyblue;
+#canvas {
+  border-style: solid;
+  border-color: #1a1a1a;
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+
+.edit {
+  background-color: #b2f8a7;
+}
+
+.pen {
+  background-color: #fbfbfb;
+}
+
+.baseSticker {
+  background-color: #99e2ff;
+}
+
+.customSticker {
+  background-color: #ff8593;
+}
+
+#thin {
+  font-weight: lighter;
+}
+
+#medium {
+  font-weight: normal;
+}
+
+#thick {
+  font-weight: bold;
+}
+
+#export {
+  background-color: #fff6b1;
 }
