@@ -123,5 +123,5 @@ function setGame(numClickables: number) {
   gameController.curOrder = 0;
 }
 
-setGame(4);
+setGame(6);
 drawGame();
